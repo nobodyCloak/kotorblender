@@ -20,6 +20,7 @@ import os
 
 from math import sqrt
 
+import bpy
 from mathutils import Matrix, Quaternion, Vector
 
 from ...defines import NodeType
@@ -165,6 +166,9 @@ class MdlLoader:
         for off in offsets:
             self.mdl.seek(MDL_OFFSET + off)
             self.names.append(self.mdl.get_c_string())
+            
+    def persist_anim_names(self):
+        bpy.context.scene[f"{self.names[0]}_animations"] = self.anim_names
 
     def peek_nodes(self, offset):
         self.mdl.seek(MDL_OFFSET + offset)
@@ -591,12 +595,14 @@ class MdlLoader:
             self.load_aabb(off_child2)
 
     def load_animations(self):
+        self.anim_names = []
         if self.animation_arr.count == 0:
             return
         self.mdl.seek(MDL_OFFSET + self.animation_arr.offset)
         offsets = [self.mdl.get_uint32() for _ in range(self.animation_arr.count)]
         for offset in offsets:
             self.load_animation(offset)
+        self.persist_anim_names()
 
     def load_animation(self, offset):
         self.mdl.seek(MDL_OFFSET + offset)
@@ -631,6 +637,7 @@ class MdlLoader:
 
         anim.root_node = self.load_anim_nodes(off_root_node, anim)
         self.model.animations.append(anim)
+        self.anim_names.append(name)
 
     def load_anim_nodes(self, offset, anim, parent=None):
         self.mdl.seek(MDL_OFFSET + offset)
